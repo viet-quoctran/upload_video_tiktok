@@ -1,0 +1,44 @@
+{
+    "groups": {
+        "1": {
+            "PROFILE_ID": [
+                "bde3d409-43b9-476b-9c1b-02c94e904f26",
+                "98633a30-607b-4ec9-8553-4ff35faddc5b"
+            ],
+            "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
+            "PATH_MAIN": "E:/upload_channel/main.py",
+            "SCHEDULE_TIME": "19:27",
+            "is_scheduled": true
+        },
+        "2": {
+            "PROFILE_ID": [
+                "7952812e-aff2-4cce-8706-0acced39cae0",
+                "83be35a5-e883-43d4-b0f2-929ecedde246"
+            ],
+            "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
+            "PATH_MAIN": "E:/upload_channel/main.py",
+            "SCHEDULE_TIME": "19:28",
+            "is_scheduled": true
+        },
+        "3": {
+            "PROFILE_ID": [
+                "774fd093-9e6e-4a6b-9e42-bba1099103c1",
+                "c7190a4d-d94d-402f-8823-1784e54e45f9"
+            ],
+            "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
+            "PATH_MAIN": "E:/upload_channel/main.py",
+            "SCHEDULE_TIME": "19:29",
+            "is_scheduled": true
+        }
+    },
+    "API_URL": "http://127.0.0.1:19995",
+    "URL_TIKTOK": "https://www.tiktok.com/",
+    "XPATH_COMMENT": "/html/body/div[1]/div[2]/div[4]/div/div[2]/div[1]/div",
+    "UPLOAD_BUTTON_XPATH": "/html/body/div[1]/div[1]/div/div[3]/div[1]",
+    "FILE_INPUT_XPATH": "//input[@type='file']",
+    "PROGRESS_XPATH": "/html/body/div[1]/div/div/div/div[1]/div[3]/div",
+    "FINAL_UPLOAD_BUTTON": "/html/body/div[1]/div/div/div/div[2]/div/div[2]/div[8]/button[2]",
+    "CLOSE_VIDEO": "/html/body/div[1]/div[2]/div[4]/div/div[1]/button[1]",
+    "START_ENDPOINT": "/api/v3/profiles/start/{id}",
+    "CLOSE_ENDPOINT": "/api/v3/profiles/close/{id}"
+}
