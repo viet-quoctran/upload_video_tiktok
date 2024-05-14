@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 import io
+import requests
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 def configure_stdout():
@@ -27,3 +28,24 @@ def save_settings(settings):
             logging.info("Settings saved successfully.")
     except Exception as e:
         logging.error(f"Failed to save settings: {e}")
+
+def send_telegram_message(bot_token, chat_id, message):
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': message,
+        'parse_mode': 'HTML'
+    }
+    try:
+        response = requests.post(url, data=payload)
+        response.raise_for_status()
+        if response.status_code == 200:
+            print("Message sent successfully")
+        else:
+            print(f"Failed to send message: {response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send message to Telegram: {e}")
+
+BOT_TOKEN = '6724583259:AAGQPd2ZRT8EpxMxt0eYd-VRf_IRUz7t5co'  # Suggest to use an environment variable or config
+ID_TELEGRAM = '5370935211'  # Your chat ID or group ID
+MESSAGE = "Hello, this is a test message!"
