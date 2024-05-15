@@ -1,5 +1,6 @@
 import sys
 import json
+import requests
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout,
                              QLineEdit, QHBoxLayout, QListWidget, QFormLayout,
@@ -57,7 +58,7 @@ class AppWindow(QWidget):
         super().__init__()
         self.processes = []
         self.config = self.load_config()
-        self.current_group = None  # Không còn lấy giá trị ngay khi khởi động
+        self.current_group = None
         self.initUI()
         self.update_ui_components()
 
@@ -97,6 +98,11 @@ class AppWindow(QWidget):
         self.delete_group_btn.clicked.connect(self.delete_group)
         group_button_layout.addWidget(self.delete_group_btn)
 
+        self.refresh_btn = QPushButton("Refresh Profiles", self)
+        self.refresh_btn.setStyleSheet("background-color: #2196F3; color: white;")
+        self.refresh_btn.clicked.connect(self.refresh_profiles)
+        group_button_layout.addWidget(self.refresh_btn)
+
         main_layout.addLayout(group_button_layout)
 
         form_layout = QFormLayout()
@@ -115,7 +121,8 @@ class AppWindow(QWidget):
 
         profile_buttons = QHBoxLayout()
         profile_buttons.addWidget(self.add_profile_btn)
-        self.edit_profile_btn = QPushButton('Edit', self)
+
+        self.edit_profile_btn = QPushButton('Edit', self)  # Ensure this button is defined
         self.edit_profile_btn.setStyleSheet("background-color: #2196F3; color: white;")
         self.edit_profile_btn.clicked.connect(self.edit_profile_id)
         profile_buttons.addWidget(self.edit_profile_btn)
@@ -185,8 +192,9 @@ class AppWindow(QWidget):
                 if new_group_name in self.config['groups']:
                     QMessageBox.warning(self, "Error", "A group with this name already exists.")
                     return
+                # Initialize PROFILE_ID as an empty dictionary instead of a list
                 self.config['groups'][new_group_name] = {
-                    "PROFILE_ID": [],
+                    "PROFILE_ID": {},
                     "FOLDER_VIDEO_BASE": "",
                     "PATH_MAIN": "",
                     "SCHEDULE_TIME": "00:00",
@@ -259,8 +267,8 @@ class AppWindow(QWidget):
             self.current_group = group
             group_config = self.config['groups'][group]
             self.profile_list.clear()
-            for profile_id in group_config['PROFILE_ID']:
-                self.profile_list.addItem(profile_id)
+            for profile_id, profile_name in group_config['PROFILE_ID'].items():
+                self.profile_list.addItem(f"{profile_name} ({profile_id})")
             self.folder_input.setText(group_config['FOLDER_VIDEO_BASE'])
             self.path_main_input.setText(group_config['PATH_MAIN'])
             schedule_time = QTime.fromString(group_config['SCHEDULE_TIME'], "HH:mm")
@@ -296,33 +304,82 @@ class AppWindow(QWidget):
             QMessageBox.warning(self, "Duplicate ID", "This profile ID already exists in the list.")
             return
 
-        self.profile_list.addItem(new_id)
-        self.config['groups'][self.current_group]['PROFILE_ID'].append(new_id)
+        api_url = f"http://127.0.0.1:19995/api/v3/profiles/{new_id}"
+        try:
+            response = requests.get(api_url)
+            if response.status_code == 200:
+                profile_data = response.json()
+                if profile_data['success']:
+                    profile_name = profile_data['data'].get('name', 'Unknown Profile Name')
+                else:
+                    QMessageBox.warning(self, "API Error", "Profile ID không có.")
+                    return
+            else:
+                QMessageBox.warning(self, "API Error", "Failed to retrieve profile data.")
+                return
+        except requests.RequestException as e:
+            QMessageBox.critical(self, "API Request Failed", f"Failed to retrieve profile name: {str(e)}")
+            return
+
+        display_text = f"{profile_name} ({new_id})"
+        self.profile_list.addItem(display_text)
+        self.config['groups'][self.current_group]['PROFILE_ID'][new_id] = profile_name
         self.save_config()
         self.profile_input.clear()
+
+
+
 
     def edit_profile_id(self):
         list_items = self.profile_list.selectedItems()
         if not list_items:
             QMessageBox.warning(self, "Selection Needed", "Please select a profile ID to edit.")
             return
+
         item = list_items[0]
+        old_display_text = item.text()
+        old_id = old_display_text.split(" (")[1].rstrip(")")  # Extract ID from display format 'Name (ID)'
+
         dialog = EditDialog(self)
         if dialog.exec_():
             new_id = dialog.get_new_id()
             if new_id and new_id not in self.config['groups'][self.current_group]['PROFILE_ID']:
-                old_id = item.text()
-                self.config['groups'][self.current_group]['PROFILE_ID'].remove(old_id)
-                self.config['groups'][self.current_group]['PROFILE_ID'].append(new_id)
-                item.setText(new_id)
+                # Fetch new profile info from the GPM Login API
+                api_url = f"http://127.0.0.1:19995/api/v3/profiles/{new_id}"
+                try:
+                    response = requests.get(api_url)
+                    if response.status_code == 200:
+                        profile_data = response.json()
+                        if profile_data['success']:
+                            new_profile_name = profile_data['data'].get('name', 'Unknown Profile Name')
+                        else:
+                            QMessageBox.warning(self, "API Error", "Profile ID không có.")
+                            return
+                    else:
+                        QMessageBox.warning(self, "API Error", "Failed to retrieve profile data.")
+                        return
+                except requests.RequestException as e:
+                    QMessageBox.critical(self, "API Request Failed", f"Failed to retrieve profile name: {str(e)}")
+                    return
+
+                # Update the dictionary with new profile info
+                self.config['groups'][self.current_group]['PROFILE_ID'].pop(old_id)  # Remove old ID
+                self.config['groups'][self.current_group]['PROFILE_ID'][new_id] = new_profile_name  # Add new ID with new name
+                new_display_text = f"{new_profile_name} ({new_id})"
+                item.setText(new_display_text)  # Update display
                 self.save_config()
+            else:
+                QMessageBox.warning(self, "Duplicate ID", "This profile ID already exists in the list.")
 
     def delete_profile_id(self):
         list_items = self.profile_list.selectedItems()
         if not list_items:
             return
         for item in list_items:
-            self.config['groups'][self.current_group]['PROFILE_ID'].remove(item.text())
+            display_text = item.text()
+            profile_id = display_text.split(" (")[1].rstrip(")")  # Extract ID from display format 'Name (ID)'
+            # Remove the profile ID from the dictionary
+            self.config['groups'][self.current_group]['PROFILE_ID'].pop(profile_id, None)
             self.profile_list.takeItem(self.profile_list.row(item))
         self.save_config()
 
@@ -383,6 +440,34 @@ class AppWindow(QWidget):
         self.edit_profile_btn.setDisabled(True)
         self.delete_profile_btn.setDisabled(True)
 
+    def refresh_profiles(self):
+        if self.current_group is None:
+            return  # Đảm bảo có nhóm được chọn
+
+        api_url = "http://127.0.0.1:19995/api/v3/profiles"
+        try:
+            response = requests.get(api_url)
+            if response.status_code == 200:
+                profiles_data = response.json().get('data', [])
+                for profile in profiles_data:
+                    profile_id = profile.get('id')
+                    profile_name = profile.get('name')
+                    # Kiểm tra và cập nhật nếu có sự khác biệt trong tên
+                    if profile_id in self.config['groups'][self.current_group]['PROFILE_ID']:
+                        if self.config['groups'][self.current_group]['PROFILE_ID'][profile_id] != profile_name:
+                            self.config['groups'][self.current_group]['PROFILE_ID'][profile_id] = profile_name
+                            self.update_profile_display(profile_id, profile_name)
+                self.save_config()  # Lưu lại cấu hình sau khi cập nhật
+        except requests.RequestException as e:
+            QMessageBox.critical(self, "API Request Failed", "Failed to refresh profiles: {}".format(str(e)))
+
+
+    def update_profile_display(self, profile_id, profile_name):
+        # Cập nhật hiển thị tên mới trong QListWidget
+        for i in range(self.profile_list.count()):
+            item = self.profile_list.item(i)
+            if item.text().endswith("({})".format(profile_id)):
+                item.setText("{} ({})".format(profile_name, profile_id))
 def main():
     app = QApplication(sys.argv)
     ex = AppWindow()

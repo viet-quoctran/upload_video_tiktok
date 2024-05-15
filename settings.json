@@ -1,13 +1,14 @@
 {
     "groups": {
-        "3": {
-            "PROFILE_ID": [
-                "c7190a4d-d94d-402f-8823-1784e54e45f9"
-            ],
-            "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
-            "PATH_MAIN": "E:/upload_channel/main.py",
-            "SCHEDULE_TIME": "22:58",
-            "is_scheduled": true
+        "JP": {
+            "PROFILE_ID": {
+                "98633a30-607b-4ec9-8553-4ff35faddc5b": "345",
+                "c7190a4d-d94d-402f-8823-1784e54e45f9": "xxxx"
+            },
+            "FOLDER_VIDEO_BASE": "",
+            "PATH_MAIN": "",
+            "SCHEDULE_TIME": "00:00",
+            "is_scheduled": false
         }
     },
     "API_URL": "http://127.0.0.1:19995",
