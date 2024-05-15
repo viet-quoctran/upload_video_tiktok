@@ -439,6 +439,8 @@ class AppWindow(QWidget):
         self.add_profile_btn.setDisabled(True)
         self.edit_profile_btn.setDisabled(True)
         self.delete_profile_btn.setDisabled(True)
+        self.folder_btn.setDisabled(True)
+        self.path_main_btn.setDisabled(True)
 
     def refresh_profiles(self):
         if self.current_group is None:

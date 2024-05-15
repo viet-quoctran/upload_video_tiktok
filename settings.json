@@ -5,10 +5,10 @@
                 "98633a30-607b-4ec9-8553-4ff35faddc5b": "345",
                 "c7190a4d-d94d-402f-8823-1784e54e45f9": "xxxx"
             },
-            "FOLDER_VIDEO_BASE": "",
-            "PATH_MAIN": "",
+            "FOLDER_VIDEO_BASE": "E:/Tkinter",
+            "PATH_MAIN": "E:/Tkinter/main.py",
             "SCHEDULE_TIME": "00:00",
-            "is_scheduled": false
+            "is_scheduled": true
         }
     },
     "API_URL": "http://127.0.0.1:19995",
