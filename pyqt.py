@@ -251,6 +251,8 @@ class AppWindow(QWidget):
             self.add_profile_btn.setEnabled(True)
             self.edit_profile_btn.setEnabled(True)
             self.delete_profile_btn.setEnabled(True)
+            self.folder_btn.setEnabled(True)
+            self.path_main_btn.setEnabled(True)
         else:
             # Disable components if no group is selected
             self.profile_list.clear()
@@ -262,6 +264,9 @@ class AppWindow(QWidget):
             self.add_profile_btn.setDisabled(True)
             self.edit_profile_btn.setDisabled(True)
             self.delete_profile_btn.setDisabled(True)
+            self.folder_btn.setDisabled(True)
+            self.path_main_btn.setDisabled(True)
+            
     def change_group(self, group):
         if group in self.config['groups']:
             self.current_group = group

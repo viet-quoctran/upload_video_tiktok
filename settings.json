@@ -2,13 +2,12 @@
     "groups": {
         "JP": {
             "PROFILE_ID": {
-                "98633a30-607b-4ec9-8553-4ff35faddc5b": "345",
-                "c7190a4d-d94d-402f-8823-1784e54e45f9": "xxxx"
+                "bde3d409-43b9-476b-9c1b-02c94e904f26": "hehehe"
             },
-            "FOLDER_VIDEO_BASE": "E:/Tkinter",
-            "PATH_MAIN": "E:/Tkinter/main.py",
+            "FOLDER_VIDEO_BASE": "",
+            "PATH_MAIN": "",
             "SCHEDULE_TIME": "00:00",
-            "is_scheduled": true
+            "is_scheduled": false
         }
     },
     "API_URL": "http://127.0.0.1:19995",

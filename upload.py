@@ -27,7 +27,7 @@ def setup_upload(driver,profile_id, group_config, config):
             wait_for_upload_complete(driver, file_path, config)
         else:
             message = "No more videos, please upload a new one"
-            CONFIG.send_telegram_message(CONFIG.BOT_TOKEN, CONFIG.ID_TELEGRAM, CONFIG.message)
+            CONFIG.send_telegram_message(CONFIG.BOT_TOKEN, CONFIG.ID_TELEGRAM, message)
     except Exception as e:
         print(f"An error occurred during file upload: {e}")
 
