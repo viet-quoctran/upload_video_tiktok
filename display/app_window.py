@@ -6,7 +6,7 @@ import os
 from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout,
                              QLineEdit, QHBoxLayout, QFormLayout,
                              QMessageBox, QTimeEdit, QDialog, QFileDialog, QComboBox, QSpinBox, QGroupBox,
-                             QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView,QLabel)
+                             QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView, QLabel)
 from PyQt5.QtCore import QTime, Qt, QFileSystemWatcher
 from PyQt5.QtGui import QColor
 from display.config_manager import ConfigManager
@@ -164,7 +164,6 @@ class AppWindow(QWidget):
         if self.current_group:
             self.change_group(self.current_group)
 
-
     def update_max_concurrent_profiles(self, value):
         self.max_concurrent_profiles = value
         print(f"Updated max concurrent profiles to: {self.max_concurrent_profiles}")
@@ -204,7 +203,6 @@ class AppWindow(QWidget):
                     "PATH_MAIN": main_py_path,
                     "SCHEDULE_TIME": "00:00",
                     "MAX_CONCURRENT_PROFILES": self.max_concurrent_profiles,
-                    "videos_error": 0,  # Initialize videos_error
                     "is_scheduled": False
                 }
                 self.save_config()
@@ -213,8 +211,6 @@ class AppWindow(QWidget):
                 self.group_selector.setCurrentText(f"{new_group_name} - chưa hẹn giờ")  # Ensure new group is selected
                 self.update_ui_components()  # Add this line to update UI components
                 QMessageBox.information(self, "Success", "New group created.")
-
-
 
     def edit_group_name(self):
         current_group_name = self.group_selector.currentText().split(" - ")[0]
@@ -264,8 +260,6 @@ class AppWindow(QWidget):
                 return
         else:
             QMessageBox.warning(self, "Group Not Found", "The selected group does not exist.")
-
-
 
     def update_ui_components(self):
         """Enable or disable UI components based on the current group selection."""
@@ -412,6 +406,7 @@ class AppWindow(QWidget):
         self.profile_input.clear()
         self.add_profile_item(new_id, profile_name, videos_uploaded, videos_remaining, videos_error)
         self.update_video_counts()  # Cập nhật ngay lập tức số lượng video
+        self.update_spinbox_max_value()  # Add this line to update the maximum value of profile_spin_box
 
     def edit_profile_id(self, profile_id):
         dialog = EditDialog(self)
@@ -442,6 +437,7 @@ class AppWindow(QWidget):
                     QMessageBox.critical(self, "API Request Failed", f"Failed to retrieve profile name: {str(e)}")
                     return
 
+                # Update the config
                 self.config['groups'][self.current_group]['PROFILE_ID'][new_id] = {
                     "name": new_profile_name,
                     "videos_uploaded": videos_uploaded,
@@ -450,16 +446,42 @@ class AppWindow(QWidget):
                 }
                 del self.config['groups'][self.current_group]['PROFILE_ID'][profile_id]
                 self.save_config()
-                self.update_profile_display(new_id, new_profile_name, videos_uploaded, videos_remaining, videos_error)
-                self.update_video_counts()  # Cập nhật ngay lập tức số lượng video
+
+                # Remove the old profile row
+                self.remove_profile_row(profile_id)
+
+                # Add the new profile details to the table
+                self.add_profile_item(new_id, new_profile_name, videos_uploaded, videos_remaining, videos_error)
+                
+                # Update the video counts and spinbox max value
+                self.update_spinbox_max_value()
+                self.update_video_counts()
+
+    def remove_profile_row(self, profile_id):
+        for row in range(self.profile_table.rowCount()):
+            if self.profile_table.item(row, 0).text() == profile_id:
+                self.profile_table.removeRow(row)
+                break
 
     def delete_profile_id(self, profile_id):
         if QMessageBox.question(self, "Confirm Deletion", f"Are you sure you want to delete the profile '{profile_id}'?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             if profile_id in self.config['groups'][self.current_group]['PROFILE_ID']:
                 del self.config['groups'][self.current_group]['PROFILE_ID'][profile_id]
                 self.save_config()
-                self.update_profile_display(profile_id, "", "", "", "")
+                # Xóa dòng khỏi bảng
+                for row in range(self.profile_table.rowCount()):
+                    if self.profile_table.item(row, 0).text() == profile_id:
+                        self.profile_table.removeRow(row)
+                        break
                 self.update_video_counts()  # Cập nhật ngay lập tức số lượng video
+                self.update_spinbox_max_value()  # Add this line to update the maximum value of profile_spin_box
+
+
+    def update_spinbox_max_value(self):
+        """Update the maximum value of the profile_spin_box based on the number of profiles."""
+        if self.current_group in self.config['groups']:
+            num_profiles = len(self.config['groups'][self.current_group]['PROFILE_ID'])
+            self.profile_spin_box.setMaximum(num_profiles if num_profiles > 0 else 1)
 
     def update_group_display(self):
         self.group_selector.blockSignals(True)

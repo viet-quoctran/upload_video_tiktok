@@ -1,19 +1,24 @@
 {
     "groups": {
-        "12332": {
+        "1": {
             "PROFILE_ID": {
-                "245e9cd3-668e-4fbe-a173-f60c33a8a56b": {
-                    "name": "P-20240516_102956",
+                "c7190a4d-d94d-402f-8823-1784e54e45f9": {
+                    "name": "xxxx",
                     "videos_uploaded": 0,
-                    "videos_remaining": 0,
+                    "videos_remaining": 4,
+                    "videos_error": 0
+                },
+                "774fd093-9e6e-4a6b-9e42-bba1099103c1": {
+                    "name": "viettq",
+                    "videos_uploaded": 4,
+                    "videos_remaining": 2,
                     "videos_error": 0
                 }
             },
-            "FOLDER_VIDEO_BASE": "",
+            "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
             "PATH_MAIN": "E:\\upload_channel\\main.py",
-            "SCHEDULE_TIME": "00:00",
+            "SCHEDULE_TIME": "16:25",
             "MAX_CONCURRENT_PROFILES": 10,
-            "videos_error": 0,
             "is_scheduled": false
         }
     },
