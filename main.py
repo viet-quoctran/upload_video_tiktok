@@ -9,8 +9,7 @@ from upload import setup_upload
 import random
 import time
 
-def setup_driver(profile_id, group_config, config):
-    # Use the specific API URL and endpoints provided in the group_config
+def setup_driver(profile_id, group_config, config, group_name):
     api = GPMLoginApiV3(config['API_URL'], config['START_ENDPOINT'], config['CLOSE_ENDPOINT'])
     start_result = api.start_profile(profile_id)
     if start_result:
@@ -20,11 +19,12 @@ def setup_driver(profile_id, group_config, config):
         service = Service(executable_path=start_result["data"]["driver_path"])
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(config['URL_TIKTOK'])
+        setup_upload(driver, profile_id, group_config, config, group_name)
         try:
             for _ in range(random.randint(1, 3)):
                 random_scroll_and_select_video(driver, config['XPATH_COMMENT'], config)
                 time.sleep(random.uniform(2, 5))
-            setup_upload(driver, profile_id, group_config, config)
+            # setup_upload(driver, profile_id, group_config, config)
         finally:
             driver.quit()
             api.close_profile(profile_id)
@@ -34,10 +34,10 @@ def main(group_name):
     group_config = config['groups'].get(group_name)
     if group_config:
         profile_ids = group_config['PROFILE_ID']
-        with ThreadPoolExecutor(max_workers=len(profile_ids)) as executor:
+        max_concurrent_profiles = group_config.get('MAX_CONCURRENT_PROFILES', 10)  # Default to 10 if not set
+        with ThreadPoolExecutor(max_workers=max_concurrent_profiles) as executor:
             for profile_id in profile_ids:
-                executor.submit(setup_driver, profile_id, group_config, config)
-
+                executor.submit(setup_driver, profile_id, group_config, config, group_name)
 
 if __name__ == "__main__":
     import sys

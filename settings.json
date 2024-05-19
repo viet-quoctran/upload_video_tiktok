@@ -1,12 +1,91 @@
 {
     "groups": {
-        "JP": {
+        "123": {
             "PROFILE_ID": {
-                "bde3d409-43b9-476b-9c1b-02c94e904f26": "hehehe"
+                "774fd093-9e6e-4a6b-9e42-bba1099103c1": {
+                    "name": "viettq",
+                    "videos_uploaded": 3,
+                    "videos_remaining": 3,
+                    "videos_error": 0
+                },
+                "95e8763f-33ce-48c4-abf3-4adaf2f7293a": {
+                    "name": "P-20240516_102959",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 0,
+                    "videos_error": 0
+                },
+                "245e9cd3-668e-4fbe-a173-f60c33a8a56b": {
+                    "name": "P-20240516_102956",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 0,
+                    "videos_error": 0
+                },
+                "a3e7c301-a60a-4539-b014-df761bd8fa47": {
+                    "name": "P-20240516_102953",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 0,
+                    "videos_error": 0
+                },
+                "7d58291c-e600-44ef-b42d-8a103ce2de86": {
+                    "name": "P-20240516_102952",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 0,
+                    "videos_error": 0
+                },
+                "fb6d0a5b-f4a2-4ac3-ae79-df57f6212716": {
+                    "name": "P-20240516_102949",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 0,
+                    "videos_error": 0
+                },
+                "88f4b12c-8f2a-4e9a-a88d-9562812fced9": {
+                    "name": "P-20240516_102946",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 0,
+                    "videos_error": 0
+                },
+                "bde3d409-43b9-476b-9c1b-02c94e904f26": {
+                    "name": "hehehe",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 0,
+                    "videos_error": 0
+                },
+                "c7190a4d-d94d-402f-8823-1784e54e45f9": {
+                    "name": "xxxx",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 4,
+                    "videos_error": 0
+                }
             },
+            "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
+            "PATH_MAIN": "E:\\upload_channel\\main.py",
+            "SCHEDULE_TIME": "13:37",
+            "MAX_CONCURRENT_PROFILES": 2,
+            "is_scheduled": false
+        },
+        "333": {
+            "PROFILE_ID": {
+                "c7190a4d-d94d-402f-8823-1784e54e45f9": {
+                    "name": "xxxx",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 4,
+                    "videos_error": 0
+                }
+            },
+            "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
+            "PATH_MAIN": "E:\\upload_channel\\main.py",
+            "SCHEDULE_TIME": "13:35",
+            "MAX_CONCURRENT_PROFILES": 1,
+            "videos_error": 0,
+            "is_scheduled": true
+        },
+        "hello": {
+            "PROFILE_ID": {},
             "FOLDER_VIDEO_BASE": "",
-            "PATH_MAIN": "",
+            "PATH_MAIN": "E:\\upload_channel\\main.py",
             "SCHEDULE_TIME": "00:00",
+            "MAX_CONCURRENT_PROFILES": 1,
+            "videos_error": 0,
             "is_scheduled": false
         }
     },

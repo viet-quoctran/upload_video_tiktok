@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 import io
+import os
 import requests
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -9,10 +10,22 @@ def configure_stdout():
     sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8', errors='ignore')
     return sys.stdout
 def load_settings():
+    config_path = 'settings.json'
     try:
-        with open('settings.json', 'r') as file:
+        with open(config_path, 'r') as file:
             settings = json.load(file)
             logging.info("Settings loaded successfully.")
+            
+            # Automatically set PATH_MAIN if not specified
+            if 'PATH_MAIN' not in settings or not settings['PATH_MAIN']:
+                config_dir = os.path.dirname(os.path.abspath(config_path))
+                main_py_path = os.path.join(config_dir, 'main.py')
+                if os.path.exists(main_py_path):
+                    settings['PATH_MAIN'] = main_py_path
+                    logging.info(f"PATH_MAIN set to {main_py_path}")
+                else:
+                    logging.warning("main.py not found, check your configuration.")
+            
             return settings
     except FileNotFoundError:
         logging.error("Settings file not found, loading default settings.")
