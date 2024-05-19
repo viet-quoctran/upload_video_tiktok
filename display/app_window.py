@@ -92,8 +92,21 @@ class AppWindow(QWidget):
         self.profile_table = QTableWidget(self)
         self.profile_table.setColumnCount(6)
         self.profile_table.setHorizontalHeaderLabels(['ID', 'Name', 'Uploaded', 'Remaining', 'Error', 'Actions'])
+        
+        # Tô màu cho hàng tiêu đề
+        header = self.profile_table.horizontalHeader()
+        header.setStyleSheet("::section {background-color: #f0f0f0; color: #000000; font-weight: bold;}")
+
+        # Thiết lập độ rộng cột
         self.profile_table.horizontalHeader().setStretchLastSection(True)
-        self.profile_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.profile_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.profile_table.setColumnWidth(0, 150)  # ID column
+        self.profile_table.setColumnWidth(1, 200)  # Name column
+        self.profile_table.setColumnWidth(2, 80)   # Uploaded column
+        self.profile_table.setColumnWidth(3, 80)   # Remaining column
+        self.profile_table.setColumnWidth(4, 80)   # Error column
+        self.profile_table.setColumnWidth(5, 150)  # Actions column
+
         profile_layout.addWidget(self.profile_table)
 
         profile_box.setLayout(profile_layout)
@@ -151,6 +164,7 @@ class AppWindow(QWidget):
         if self.current_group:
             self.change_group(self.current_group)
 
+
     def update_max_concurrent_profiles(self, value):
         self.max_concurrent_profiles = value
         print(f"Updated max concurrent profiles to: {self.max_concurrent_profiles}")
@@ -197,7 +211,9 @@ class AppWindow(QWidget):
                 self.update_group_display()
                 self.change_group(new_group_name)
                 self.group_selector.setCurrentText(f"{new_group_name} - chưa hẹn giờ")  # Ensure new group is selected
+                self.update_ui_components()  # Add this line to update UI components
                 QMessageBox.information(self, "Success", "New group created.")
+
 
 
     def edit_group_name(self):
@@ -223,19 +239,33 @@ class AppWindow(QWidget):
             if QMessageBox.question(self, "Confirm Deletion", f"Are you sure you want to delete the group '{current_group_name}'?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
                 del self.config['groups'][current_group_name]
                 self.save_config()
-                # Cập nhật current_group để đảm bảo nó không phải là nhóm đã bị xóa
-                if self.config['groups']:
-                    self.current_group = next(iter(self.config['groups']))
-                else:
+                # Clear all profile and settings information if no groups are left
+                if not self.config['groups']:
                     self.current_group = None
-                self.update_group_display()
-                if self.current_group:
-                    self.change_group(self.current_group)
-                QMessageBox.information(self, "Group Deleted", f"Group '{current_group_name}' has been deleted.")
+                    self.profile_table.clearContents()
+                    self.profile_table.setRowCount(0)
+                    self.folder_input.clear()
+                    self.schedule_time_input.clear()
+                    self.start_button.setDisabled(True)
+                    self.stop_button.setDisabled(True)
+                    self.add_profile_btn.setDisabled(True)
+                    self.profile_input.setDisabled(True)
+                    self.update_settings_enabled(False)
+                    self.group_selector.clear()  # Clear the ComboBox
+                    QMessageBox.information(self, "Group Deleted", f"Group '{current_group_name}' has been deleted. All related profiles and settings have been cleared.")
+                else:
+                    # Update current_group to ensure it's not the deleted group
+                    self.current_group = next(iter(self.config['groups']))
+                    self.update_group_display()
+                    if self.current_group:
+                        self.change_group(self.current_group)
+                    QMessageBox.information(self, "Group Deleted", f"Group '{current_group_name}' has been deleted.")
             else:
                 return
         else:
             QMessageBox.warning(self, "Group Not Found", "The selected group does not exist.")
+
+
 
     def update_ui_components(self):
         """Enable or disable UI components based on the current group selection."""
