@@ -19,12 +19,11 @@ def setup_driver(profile_id, group_config, config, group_name):
         service = Service(executable_path=start_result["data"]["driver_path"])
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(config['URL_TIKTOK'])
-        setup_upload(driver, profile_id, group_config, config, group_name)
         try:
             for _ in range(random.randint(1, 3)):
                 random_scroll_and_select_video(driver, config['XPATH_COMMENT'], config)
                 time.sleep(random.uniform(2, 5))
-            # setup_upload(driver, profile_id, group_config, config)
+            setup_upload(driver, profile_id, group_config, config, group_name)
         finally:
             driver.quit()
             api.close_profile(profile_id)

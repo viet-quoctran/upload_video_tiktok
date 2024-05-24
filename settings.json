@@ -1,24 +1,33 @@
 {
     "groups": {
-        "1": {
+        "JP": {
             "PROFILE_ID": {
                 "c7190a4d-d94d-402f-8823-1784e54e45f9": {
                     "name": "xxxx",
                     "videos_uploaded": 0,
-                    "videos_remaining": 4,
-                    "videos_error": 0
+                    "videos_remaining": 6,
+                    "videos_error": 0,
+                    "upload_count": 1
+                },
+                "83be35a5-e883-43d4-b0f2-929ecedde246": {
+                    "name": "quocviet12346",
+                    "videos_uploaded": 0,
+                    "videos_remaining": 3,
+                    "videos_error": 1,
+                    "upload_count": 2
                 },
                 "774fd093-9e6e-4a6b-9e42-bba1099103c1": {
                     "name": "viettq",
-                    "videos_uploaded": 4,
-                    "videos_remaining": 2,
-                    "videos_error": 0
+                    "videos_uploaded": 0,
+                    "videos_remaining": 4,
+                    "videos_error": 2,
+                    "upload_count": 1
                 }
             },
             "FOLDER_VIDEO_BASE": "E:/upload_channel/video",
             "PATH_MAIN": "E:\\upload_channel\\main.py",
-            "SCHEDULE_TIME": "16:25",
-            "MAX_CONCURRENT_PROFILES": 10,
+            "SCHEDULE_TIME": "04:37",
+            "MAX_CONCURRENT_PROFILES": 1,
             "is_scheduled": false
         }
     },
@@ -28,8 +37,9 @@
     "UPLOAD_BUTTON_XPATH": "/html/body/div[1]/div[1]/div/div[3]/div[1]",
     "FILE_INPUT_XPATH": "//input[@type='file']",
     "PROGRESS_XPATH": "/html/body/div[1]/div/div/div/div[1]/div[3]/div",
-    "FINAL_UPLOAD_BUTTON": "/html/body/div[1]/div/div/div/div[2]/div/div[2]/div[8]/button[2]",
+    "FINAL_UPLOAD_BUTTON": "//button[@class='TUXButton TUXButton--default TUXButton--large TUXButton--primary' and @type='button']",
     "CLOSE_VIDEO": "/html/body/div[1]/div[2]/div[4]/div/div[1]/button[1]",
     "START_ENDPOINT": "/api/v3/profiles/start/{id}",
-    "CLOSE_ENDPOINT": "/api/v3/profiles/close/{id}"
+    "CLOSE_ENDPOINT": "/api/v3/profiles/close/{id}",
+    "URL_UPLOAD": "https://www.tiktok.com/tiktokstudio/upload?from=upload"
 }

@@ -19,7 +19,6 @@ class AppWindow(QWidget):
         self.config_manager = ConfigManager()
         self.config = self.config_manager.config
         self.current_group = None if not self.config['groups'] else list(self.config['groups'].keys())[0]
-        self.max_concurrent_profiles = 10
         self.initUI()
         self.update_ui_components()
         self.file_watcher = QFileSystemWatcher(self)
@@ -90,8 +89,8 @@ class AppWindow(QWidget):
 
         # Profile table
         self.profile_table = QTableWidget(self)
-        self.profile_table.setColumnCount(6)
-        self.profile_table.setHorizontalHeaderLabels(['ID', 'Name', 'Uploaded', 'Remaining', 'Error', 'Actions'])
+        self.profile_table.setColumnCount(7)
+        self.profile_table.setHorizontalHeaderLabels(['ID', 'Name', 'Uploaded', 'Remaining', 'Error', 'Upload Count', 'Actions'])
         
         # Tô màu cho hàng tiêu đề
         header = self.profile_table.horizontalHeader()
@@ -100,12 +99,13 @@ class AppWindow(QWidget):
         # Thiết lập độ rộng cột
         self.profile_table.horizontalHeader().setStretchLastSection(True)
         self.profile_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.profile_table.setColumnWidth(0, 150)  # ID column
-        self.profile_table.setColumnWidth(1, 200)  # Name column
-        self.profile_table.setColumnWidth(2, 80)   # Uploaded column
-        self.profile_table.setColumnWidth(3, 80)   # Remaining column
-        self.profile_table.setColumnWidth(4, 80)   # Error column
-        self.profile_table.setColumnWidth(5, 150)  # Actions column
+        self.profile_table.setColumnWidth(0, 100)  # ID column
+        self.profile_table.setColumnWidth(1, 150)  # Name column
+        self.profile_table.setColumnWidth(2, 70)   # Uploaded column
+        self.profile_table.setColumnWidth(3, 70)   # Remaining column
+        self.profile_table.setColumnWidth(4, 70)   # Error column
+        self.profile_table.setColumnWidth(5, 80)   # Upload Count column
+        self.profile_table.setColumnWidth(6, 200)  # Actions column
 
         profile_layout.addWidget(self.profile_table)
 
@@ -202,7 +202,7 @@ class AppWindow(QWidget):
                     "FOLDER_VIDEO_BASE": "",
                     "PATH_MAIN": main_py_path,
                     "SCHEDULE_TIME": "00:00",
-                    "MAX_CONCURRENT_PROFILES": self.max_concurrent_profiles,
+                    "MAX_CONCURRENT_PROFILES": 1,  # Default value, will be updated based on profiles
                     "is_scheduled": False
                 }
                 self.save_config()
@@ -211,6 +211,7 @@ class AppWindow(QWidget):
                 self.group_selector.setCurrentText(f"{new_group_name} - chưa hẹn giờ")  # Ensure new group is selected
                 self.update_ui_components()  # Add this line to update UI components
                 QMessageBox.information(self, "Success", "New group created.")
+                self.update_spinbox_max_value()  # Update the spinbox value after creating a new group
 
     def edit_group_name(self):
         current_group_name = self.group_selector.currentText().split(" - ")[0]
@@ -301,16 +302,23 @@ class AppWindow(QWidget):
             group_config = self.config['groups'][group]
             self.profile_table.setRowCount(0)
             for profile_id, profile_info in group_config['PROFILE_ID'].items():
-                self.add_profile_item(profile_id, profile_info['name'], profile_info.get('videos_uploaded', 0), profile_info.get('videos_remaining', 0), profile_info.get('videos_error', 0))
+                self.add_profile_item(
+                    profile_id,
+                    profile_info['name'],
+                    profile_info.get('videos_uploaded', 0),
+                    profile_info.get('videos_remaining', 0),
+                    profile_info.get('videos_error', 0),
+                    profile_info.get('upload_count', 1)  # Thêm upload_count
+                )
             self.folder_input.setText(group_config['FOLDER_VIDEO_BASE'])
             schedule_time = QTime.fromString(group_config['SCHEDULE_TIME'], "HH:mm")
             self.schedule_time_input.setTime(schedule_time)
             max_profiles = len(group_config['PROFILE_ID'])
             self.profile_spin_box.setMaximum(max_profiles if max_profiles > 0 else 1)
             self.profile_spin_box.setValue(group_config['MAX_CONCURRENT_PROFILES'])
-            self.update_video_counts()  # Cập nhật số lượng video khi nhóm thay đổi
+            self.update_video_counts()
 
-    def add_profile_item(self, profile_id, profile_name, uploaded_videos, remaining_videos, error_videos):
+    def add_profile_item(self, profile_id, profile_name, uploaded_videos, remaining_videos, error_videos, upload_count):
         row_position = self.profile_table.rowCount()
         self.profile_table.insertRow(row_position)
 
@@ -319,6 +327,13 @@ class AppWindow(QWidget):
         self.profile_table.setItem(row_position, 2, QTableWidgetItem(str(uploaded_videos)))
         self.profile_table.setItem(row_position, 3, QTableWidgetItem(str(remaining_videos)))
         self.profile_table.setItem(row_position, 4, QTableWidgetItem(str(error_videos)))
+
+        upload_count_spinbox = QSpinBox()
+        upload_count_spinbox.setMinimum(1)
+        upload_count_spinbox.setMaximum(remaining_videos)
+        upload_count_spinbox.setValue(upload_count)
+        upload_count_spinbox.valueChanged.connect(lambda value, pid=profile_id: self.update_upload_count(pid, value))
+        self.profile_table.setCellWidget(row_position, 5, upload_count_spinbox)
 
         action_layout = QHBoxLayout()
 
@@ -334,7 +349,12 @@ class AppWindow(QWidget):
 
         action_widget = QWidget()
         action_widget.setLayout(action_layout)
-        self.profile_table.setCellWidget(row_position, 5, action_widget)
+        self.profile_table.setCellWidget(row_position, 6, action_widget)
+
+    def update_upload_count(self, profile_id, value):
+        if self.current_group and profile_id in self.config['groups'][self.current_group]['PROFILE_ID']:
+            self.config['groups'][self.current_group]['PROFILE_ID'][profile_id]['upload_count'] = value
+            self.save_config()
 
     def toggle_all_checkboxes(self, state):
         for index in range(self.profile_list.count()):
@@ -386,6 +406,7 @@ class AppWindow(QWidget):
                     videos_uploaded = profile_data['data'].get('videos_uploaded', 0)
                     videos_remaining = profile_data['data'].get('videos_remaining', 0)
                     videos_error = profile_data['data'].get('videos_error', 0)
+                    upload_count = min(1, videos_remaining)  # Set default upload_count to 1 or less if videos_remaining is less
                 else:
                     QMessageBox.warning(self, "API Error", "Profile ID không có.")
                     return
@@ -400,15 +421,18 @@ class AppWindow(QWidget):
             "name": profile_name,
             "videos_uploaded": videos_uploaded,
             "videos_remaining": videos_remaining,
-            "videos_error": videos_error
+            "videos_error": videos_error,
+            "upload_count": upload_count  # Ensure upload_count is added here
         }
         self.save_config()
         self.profile_input.clear()
-        self.add_profile_item(new_id, profile_name, videos_uploaded, videos_remaining, videos_error)
+        self.add_profile_item(new_id, profile_name, videos_uploaded, videos_remaining, videos_error, upload_count)  # Include upload_count here
         self.update_video_counts()  # Cập nhật ngay lập tức số lượng video
         self.update_spinbox_max_value()  # Add this line to update the maximum value of profile_spin_box
 
     def edit_profile_id(self, profile_id):
+        self.config_manager.reload_config()  # Tải lại cấu hình mới nhất
+        self.config = self.config_manager.config
         dialog = EditDialog(self)
         if dialog.exec_():
             new_id = dialog.get_new_id()
@@ -427,6 +451,7 @@ class AppWindow(QWidget):
                             videos_uploaded = profile_data['data'].get('videos_uploaded', 0)
                             videos_remaining = profile_data['data'].get('videos_remaining', 0)
                             videos_error = profile_data['data'].get('videos_error', 0)
+                            upload_count = min(1, videos_remaining)  # Set default upload_count to 1 or less if videos_remaining is less
                         else:
                             QMessageBox.warning(self, "API Error", "Profile ID không có.")
                             return
@@ -442,7 +467,8 @@ class AppWindow(QWidget):
                     "name": new_profile_name,
                     "videos_uploaded": videos_uploaded,
                     "videos_remaining": videos_remaining,
-                    "videos_error": videos_error
+                    "videos_error": videos_error,
+                    "upload_count": upload_count  # Ensure upload_count is added here
                 }
                 del self.config['groups'][self.current_group]['PROFILE_ID'][profile_id]
                 self.save_config()
@@ -451,7 +477,7 @@ class AppWindow(QWidget):
                 self.remove_profile_row(profile_id)
 
                 # Add the new profile details to the table
-                self.add_profile_item(new_id, new_profile_name, videos_uploaded, videos_remaining, videos_error)
+                self.add_profile_item(new_id, new_profile_name, videos_uploaded, videos_remaining, videos_error, upload_count)
                 
                 # Update the video counts and spinbox max value
                 self.update_spinbox_max_value()
@@ -475,7 +501,6 @@ class AppWindow(QWidget):
                         break
                 self.update_video_counts()  # Cập nhật ngay lập tức số lượng video
                 self.update_spinbox_max_value()  # Add this line to update the maximum value of profile_spin_box
-
 
     def update_spinbox_max_value(self):
         """Update the maximum value of the profile_spin_box based on the number of profiles."""
@@ -556,7 +581,8 @@ class AppWindow(QWidget):
     def refresh_profiles(self):
         if self.current_group is None:
             return
-
+        self.config_manager.reload_config()  # Tải lại cấu hình mới nhất
+        self.config = self.config_manager.config
         api_url = "http://127.0.0.1:19995/api/v3/profiles"
         try:
             response = requests.get(api_url)
@@ -565,13 +591,14 @@ class AppWindow(QWidget):
                 for profile in profiles_data:
                     profile_id = profile.get('id')
                     profile_name = profile.get('name')
-                    videos_uploaded = profile.get('videos_uploaded', 0)
-                    videos_remaining = profile.get('videos_remaining', 0)
-                    videos_error = profile.get('videos_error', 0)
                     if profile_id in self.config['groups'][self.current_group]['PROFILE_ID']:
                         profile_info = self.config['groups'][self.current_group]['PROFILE_ID'][profile_id]
+                        # Sử dụng videos_uploaded từ settings.json
+                        videos_uploaded = profile_info.get('videos_uploaded', 0)
+                        # Cập nhật các giá trị khác từ API
+                        videos_remaining = profile.get('videos_remaining', profile_info.get('videos_remaining', 0))
+                        videos_error = profile.get('videos_error', profile_info.get('videos_error', 0))
                         if (profile_info['name'] != profile_name or
-                            profile_info['videos_uploaded'] != videos_uploaded or
                             profile_info['videos_remaining'] != videos_remaining or
                             profile_info['videos_error'] != videos_error):
                             profile_info['name'] = profile_name
@@ -593,6 +620,13 @@ class AppWindow(QWidget):
                 self.profile_table.setItem(row, 2, QTableWidgetItem(str(uploaded_videos)))
                 self.profile_table.setItem(row, 3, QTableWidgetItem(str(remaining_videos)))
                 self.profile_table.setItem(row, 4, QTableWidgetItem(str(error_videos)))
+                
+                upload_count_spinbox = QSpinBox()
+                upload_count_spinbox.setMinimum(0)
+                upload_count_spinbox.setMaximum(remaining_videos)
+                upload_count_spinbox.setValue(self.config['groups'][self.current_group]['PROFILE_ID'][profile_id].get('upload_count', 0))
+                upload_count_spinbox.valueChanged.connect(lambda value, pid=profile_id: self.update_upload_count(pid, value))
+                self.profile_table.setCellWidget(row, 5, upload_count_spinbox)
                 break
 
     def update_video_counts(self):
@@ -601,10 +635,10 @@ class AppWindow(QWidget):
             for profile_id in self.config['groups'][self.current_group]['PROFILE_ID']:
                 profile_video_path = os.path.join(video_folder, profile_id)
                 if os.path.exists(profile_video_path):
-                    uploaded_videos = len([f for f in os.listdir(profile_video_path) if f.endswith('_done.mp4')])
+                    uploaded_videos = self.config['groups'][self.current_group]['PROFILE_ID'][profile_id]['videos_uploaded']
                     total_videos = len([f for f in os.listdir(profile_video_path) if f.endswith('.mp4')])
                     error_videos = len([f for f in os.listdir(profile_video_path) if f.endswith('_error.mp4')])
-                    remaining_videos = total_videos - uploaded_videos - error_videos
+                    remaining_videos = total_videos - error_videos
                 else:
                     uploaded_videos = 0
                     remaining_videos = 0

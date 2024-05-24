@@ -5,13 +5,13 @@ import settings as CONFIG
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from display.config_manager import ConfigManager  # Import ConfigManager
 
 CONFIG.configure_stdout()
 
 def group_and_sort_videos(directory):
-    videos = [f for f in os.listdir(directory) if f.endswith('.mp4')]
+    videos = [f for f in os.listdir(directory) if f.endswith('.mp4') and '_error' not in f]
     grouped_videos = {}
     for video in videos:
         base_name = '-'.join(video.split('-')[:-1])  # Group by base name
@@ -34,13 +34,8 @@ def setup_upload(driver, profile_id, group_config, config, group_name):
 
         video_path = os.path.join(group_config['FOLDER_VIDEO_BASE'], profile_id)
         grouped_videos = group_and_sort_videos(video_path)
-        
-        for base_name, videos in grouped_videos.items():
-            for video in videos:
-                file_path = os.path.join(video_path, video)
-                file_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, config['FILE_INPUT_XPATH'])))
-                file_input.send_keys(file_path)
-                wait_for_upload_complete(driver, file_path, config, profile_id, group_name)  # Pass profile_id and group_name
+        upload_count = group_config['PROFILE_ID'][profile_id].get('upload_count', 1)
+        upload_videos(driver, grouped_videos, upload_count, video_path, config, profile_id, group_name)
                 
     except Exception as e:
         print(f"An error occurred during file upload: {e}")
@@ -60,7 +55,6 @@ def wait_for_upload_complete(driver, file_path, config, profile_id, group_name):
                 )
                 driver.execute_script("arguments[0].scrollIntoView(true);", final_button)
                 time.sleep(random.uniform(2, 5))
-
                 checkbox = driver.find_element(By.XPATH, '//input[@role="switch"]')
                 if not checkbox.is_selected():
                     checkbox.click()
@@ -73,27 +67,31 @@ def wait_for_upload_complete(driver, file_path, config, profile_id, group_name):
                     while True:
                         try:
                             final_button.click()
-                            WebDriverWait(driver, 30).until(
-                                EC.presence_of_element_located((By.XPATH, '/html/body/div[8]/div/div/div[3]/button[2]/div/div'))
-                            ).click()
-                            time.sleep(5)
-                            try:
-                                driver.switch_to.default_content()
-                                iframe = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'iframe')))
-                                driver.switch_to.frame(iframe)
-                                file_input = WebDriverWait(driver, 10).until(
-                                    EC.presence_of_element_located((By.XPATH, config['FILE_INPUT_XPATH']))
-                                )
-                                if file_input:
-                                    rename_uploaded_file(file_path)
-                                    update_video_counts(profile_id, group_name)  # Update video counts
-                                    break 
-                            except NoSuchElementException:
-                                pass
+                            modal_element = WebDriverWait(driver, 30).until(
+                                EC.presence_of_element_located((By.XPATH, '//div[@class="TUXModal common-modal common-modal-width--medium common-modal-confirm-modal"]'))
+                            )
+                            if modal_element:
+                                cancel_button = modal_element.find_element(By.XPATH, '//div[@class="TUXModal common-modal common-modal-width--medium common-modal-confirm-modal"]//button[contains(@class, "TUXButton--secondary") and @type="button"]')
+                                cancel_button.click()
+                                time.sleep(5)
+                                
+                                current_url = driver.current_url
+                                if current_url == "https://www.tiktok.com/tiktokstudio/content":
+                                    delete_uploaded_file(file_path, profile_id, group_name)  # Ensure correct call
+                                    driver.get(config['URL_UPLOAD'])
+                                    time.sleep(5)
+                                    iframe = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'iframe')))
+                                    driver.switch_to.frame(iframe)
+                                    return True  # Indicate the page was refreshed and continue uploading
+                                else:
+                                    return False  # Indicate the upload failed
+                            else:
+                                return False  # Indicate the upload failed
+                        
                         except NoSuchElementException:
                             print("Retrying to click final button...")
-                            time.sleep(300) 
-                            continue  
+                            time.sleep(300)
+                            continue
                 else:
                     base, ext = os.path.splitext(file_path)
                     new_file_path = f"{base}_error{ext}"
@@ -107,14 +105,39 @@ def wait_for_upload_complete(driver, file_path, config, profile_id, group_name):
         except Exception as e:
             print(f"An unexpected error occurred while waiting for upload to complete: {e}")
             break
+    return False  # Indicate the upload completed successfully without needing a refresh
 
-def rename_uploaded_file(file_path):
-    base, ext = os.path.splitext(file_path)
-    new_file_path = f"{base}_done{ext}"
-    os.rename(file_path, new_file_path)
-    print(f"File renamed to {new_file_path}")
+def delete_uploaded_file(file_path, profile_id, group_name):
+    try:
+        os.remove(file_path)
+        print(f"File {file_path} deleted successfully.")
+        # Cập nhật số lượng video đã tải lên trong settings.json
+        config_manager = ConfigManager()
+        config_manager.reload_config()
+        config = config_manager.config
+        config['groups'][group_name]['PROFILE_ID'][profile_id]['videos_uploaded'] += 1
+        config_manager.save_config()
+    except Exception as e:
+        print(f"Failed to delete file {file_path}: {e}")
 
 def update_video_counts(profile_id, group_name):
     config_manager = ConfigManager()
+    config_manager.reload_config()
     video_folder = config_manager.config['groups'][group_name]['FOLDER_VIDEO_BASE']
-    config_manager.update_video_counts(profile_id, group_name, video_folder)
+    config_manager.update_video_counts(group_name, profile_id, video_folder)
+
+def upload_videos(driver, grouped_videos, upload_count, video_path, config, profile_id, group_name):
+    total_uploaded = 0  # Track total number of videos uploaded
+    for base_name, videos in grouped_videos.items():
+        i = 0
+        while i < len(videos):
+            if total_uploaded >= upload_count:
+                return False  # Indicate the upload failed
+            video = videos[i]
+            file_path = os.path.join(video_path, video)
+            file_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, config['FILE_INPUT_XPATH'])))
+            file_input.send_keys(file_path)
+            if not wait_for_upload_complete(driver, file_path, config, profile_id, group_name):
+                return  # Exit if the upload fails or needs to refresh the page
+            total_uploaded += 1  # Increment the total uploaded count
+            i += 1
